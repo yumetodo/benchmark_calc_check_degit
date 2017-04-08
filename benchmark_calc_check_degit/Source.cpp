@@ -195,17 +195,17 @@ std::uint8_t calc_check_digit_ryogaelbtn2(const std::string& P) {
 	try { std::stoull(P); }
 	catch (...) { throw std::runtime_error("in function calc_check_digit_ryogaelbtn : iregal charactor detect.(" + P + ')'); }
 	unsigned int sum = 0;
-	sum += static_cast<std::uint16_t>(P[10]) * Q(1);
-	sum += static_cast<std::uint16_t>(P[9]) * Q(2);
-	sum += static_cast<std::uint16_t>(P[8]) * Q(3);
-	sum += static_cast<std::uint16_t>(P[7]) * Q(4);
-	sum += static_cast<std::uint16_t>(P[6]) * Q(5);
-	sum += static_cast<std::uint16_t>(P[5]) * Q(6);
-	sum += static_cast<std::uint16_t>(P[4]) * Q(7);
-	sum += static_cast<std::uint16_t>(P[3]) * Q(8);
-	sum += static_cast<std::uint16_t>(P[2]) * Q(9);
-	sum += static_cast<std::uint16_t>(P[1]) * Q(10);
-	sum += static_cast<std::uint16_t>(P[0]) * Q(11);
+	sum += static_cast<std::uint16_t>(P[10] - '0') * Q(1);
+	sum += static_cast<std::uint16_t>(P[9] - '0') * Q(2);
+	sum += static_cast<std::uint16_t>(P[8] - '0') * Q(3);
+	sum += static_cast<std::uint16_t>(P[7] - '0') * Q(4);
+	sum += static_cast<std::uint16_t>(P[6] - '0') * Q(5);
+	sum += static_cast<std::uint16_t>(P[5] - '0') * Q(6);
+	sum += static_cast<std::uint16_t>(P[4] - '0') * Q(7);
+	sum += static_cast<std::uint16_t>(P[3] - '0') * Q(8);
+	sum += static_cast<std::uint16_t>(P[2] - '0') * Q(9);
+	sum += static_cast<std::uint16_t>(P[1] - '0') * Q(10);
+	sum += static_cast<std::uint16_t>(P[0] - '0') * Q(11);
 
 	return sum % 11 <= 1 ? 0 : 11 - sum % 11;
 }
