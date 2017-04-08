@@ -154,6 +154,29 @@ __m128i mullo_epi8(__m128i a, __m128i b)
 #endif
 }
 
+//@YSRKEN
+//http://qiita.com/YSRKEN/items/4ca7229c98640a71bdad
+
+std::uint8_t calc_check_digit_ysrken(const std::string& str) noexcept(false) {
+	static constexpr auto mod_table = make_mod_table_ysr();
+	// 自分で作った文字列に対して入力チェックが必要なのかしら……？
+	if (11 != str.size()) throw std::runtime_error("str.digit must be 11");
+	for (auto e : str) if (e < '0' || '9' < e) { throw std::runtime_error("in function calc_check_digit_ysrken : iregal charactor detect.(" + str + ')'); }
+	// __m128i型にマッピングし、'0'でマイナスすることで整数化する
+	// 必然的に後ろ8ビット×5個=40ビット分はゴミが入ることになる
+	__m128i p_n = _mm_loadu_si128(reinterpret_cast<const __m128i*>(str.c_str()));
+	static const __m128i sub = _mm_set_epi8('0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0');
+	p_n = _mm_sub_epi8(p_n, sub);
+	// q_nはどうせ定数なので決め打ちする
+	// p_nは反転処理すらしてないので注意
+	static const __m128i q_n = _mm_set_epi8(0, 0, 0, 0, 0, 2, 3, 4, 5, 6, 7, 2, 3, 4, 5, 6);
+	// p_nとq_nとの掛け算
+	const __m128i mul_pq = mullo_epi8(p_n, q_n);
+	// 総和を計算する
+	__m128i y = _mm_sad_epu8(mul_pq, _mm_setzero_si128());
+	y = _mm_add_epi16(y, _mm_srli_si128(y, 8));
+	return mod_table[_mm_cvtsi128_si32(y)];
+}
 
 //@MaverickTse
 //https://gist.github.com/MaverickTse/b78eff8fcc70962e0ee7a21b985bbaa9
@@ -297,6 +320,7 @@ int main() {
 		bench("calc_check_digit_yumetodo", calc_check_digit_yumetodo, inputs);
 		bench("calc_check_digit_ryogaelbtn2", calc_check_digit_ryogaelbtn2, inputs);
 		bench("calc_check_digit_yumetodo_original", calc_check_digit_yumetodo_original, inputs);
+		bench("calc_check_digit_ysrken", calc_check_digit_ysrken, inputs);
 		bench("get_check_digit_avx2", get_check_digit_avx2, inputs);
 		bench("get_check_digit_ssse3", get_check_digit_ssse3, inputs);
 		std::cout << "benchmark finish!" << std::endl;
