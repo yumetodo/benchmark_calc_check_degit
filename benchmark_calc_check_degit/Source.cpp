@@ -19,15 +19,9 @@
 #include <immintrin.h>
 #define SPROUT_CONFIG_DISABLE_VARIABLE_TEMPLATES 1
 #if defined(_MSC_VER) && !defined(__c2__)
+#	pragma warning(disable: 5030)//警告	C5030	属性 'gnu::unused' は認識されません
 #	if 191025017 <= _MSC_FULL_VER
 #		define SPROUT_CONFIG_FORCE_CXX14_CONSTEXPR 1
-#	endif
-
-#	if _MSC_VER < 1900
-#		define alignas( n ) __declspec(align(n))
-#		define SPROUT_CONFIG_DISABLE_TEMPLATE_ALIASES 1
-#	else
-#		pragma warning(disable: 5030)//警告	C5030	属性 'gnu::unused' は認識されません
 #	endif
 #endif
 #include <sprout/array.hpp>
@@ -58,7 +52,7 @@ std::ostream& operator<<(std::ostream& os, const test_result& t) {
 	os << "testcase:" << t.test_case << ": expected(" << std::uint16_t(t.expected) << ") actual(" << std::uint16_t(t.actual) << ')';
 	return os;
 }
-std::vector<test_result> test(calc_check_digit_f f) {
+auto test(calc_check_digit_f f) {
 	static const std::pair<std::string, std::uint8_t> testcase[] = {
 		{ "12345678901", 8 },
 		{ "56661137362", 0 },
@@ -95,9 +89,8 @@ std::chrono::nanoseconds bench(const char* func_name, calc_check_digit_f f, cons
 		return ss.str();
 	};
 	const auto t0 = hc::now();
-	std::uint8_t dst;
+	[[gnu::unused]] std::uint8_t dst;
 	for (auto&& i : inputs) dst = f(i);
-	(void*)dst;
 	const auto t1 = hc::now();
 	const auto t = t1 - t0;
 	std::cout
@@ -107,7 +100,7 @@ std::chrono::nanoseconds bench(const char* func_name, calc_check_digit_f f, cons
 	if(!test_re.empty()) std::cout << v2s(test_re) << std::endl;
 	return ch::duration_cast<ch::nanoseconds>(t);
 }
-SPROUT_CXX14_CONSTEXPR sprout::array<std::uint16_t, 16> make_qn() {
+SPROUT_CXX14_CONSTEXPR auto make_qn() {
 	alignas(16) sprout::array<std::uint16_t, 16> re{};
 	for (std::uint8_t i = 0, n = 1; i < re.size(); ++i, ++n) re[i] = (n < 7) ? n + 1 : n - 5;
 	return re;
@@ -134,7 +127,7 @@ SPROUT_CXX14_CONSTEXPR sprout::array<std::uint8_t, 1000> make_mod_table_yumetodo
 	return re;
 }
 
-std::uint8_t calc_check_digit_yumetodo_kai_simd(const std::string& n) SPROUT_NOEXCEPT_IF(false) {
+std::uint8_t calc_check_digit_yumetodo_kai_simd(const std::string& n) noexcept(false) {
 	static SPROUT_CXX14_CONSTEXPR auto mod_table = make_mod_table_yumetodo();
 	SPROUT_CONSTEXPR std::size_t num_of_digits = 11;
 	if (num_of_digits != n.size()) throw std::runtime_error("n.digit must be 11");
@@ -152,7 +145,7 @@ std::uint8_t calc_check_digit_yumetodo_kai_simd(const std::string& n) SPROUT_NOE
 	r = mod_table[r];
 	return (0 == r || 1 == r) ? 0 : 11 - r;
 }
-std::uint8_t calc_check_digit_yumetodo_kai(const std::string& n) SPROUT_NOEXCEPT_IF(false) {
+std::uint8_t calc_check_digit_yumetodo_kai(const std::string& n) noexcept(false) {
 	SPROUT_CONSTEXPR std::size_t num_of_digits = 11;
 	if (num_of_digits != n.size()) throw std::runtime_error("n.digit must be 11");
 	for (auto e : n) if (e < '0' || '9' < e) { throw std::runtime_error("in function calc_check_digit_yumetodo : iregal charactor detect.(" + n + ')'); }
@@ -166,17 +159,17 @@ std::uint8_t calc_check_digit_yumetodo_kai(const std::string& n) SPROUT_NOEXCEPT
 	r %= 11;
 	return (0 == r || 1 == r) ? 0 : 11 - r;
 }
-std::uint8_t calc_check_digit_yumetodo(const std::string& n) SPROUT_NOEXCEPT_IF(false) {
+std::uint8_t calc_check_digit_yumetodo(const std::string& n) noexcept(false) {
 	if (11 != n.size()) throw std::runtime_error("n.digit must be 11");
 	for (auto e : n) if (e < '0' || '9' < e) { throw std::runtime_error("in function calc_check_digit_yumetodo : iregal charactor detect.(" + n + ')'); }
-	const std::uint8_t r = std::accumulate(n.rbegin(), n.rend(), std::pair<int, int>{}, [](const std::pair<int, int>& s, const char& e) -> std::pair<int, int> {
+	const std::uint8_t r = std::accumulate(n.rbegin(), n.rend(), std::pair<int, int>{}, [](const auto& s, const char& e) -> std::pair<int, int> {
 		return { s.first + (e - '0') * ((5 < s.second) ? s.second - 4 : s.second + 2), s.second + 1 };
 	}).first % 11;
 	return (0 == r || 1 == r) ? 0 : 11 - r;
 }
-std::uint8_t calc_check_digit_yumetodo_original(const std::string& n) SPROUT_NOEXCEPT_IF(false) {
+std::uint8_t calc_check_digit_yumetodo_original(const std::string& n) noexcept(false) {
 	if (11 != n.size()) throw std::runtime_error("n.digit must be 11");
-	const int r = std::accumulate(n.rbegin(), n.rend(), std::pair<int, int>{}, [](const std::pair<int, int>& s, const char& e) -> std::pair<int, int> {
+	const int r = std::accumulate(n.rbegin(), n.rend(), std::pair<int, int>{}, [](const auto& s, const char& e) -> std::pair<int, int> {
 		if (!std::isdigit(e)) throw std::runtime_error("n.digit must be 11");
 		return { s.first + (e - '0') * ((5 < s.second) ? s.second - 4 : s.second + 2), s.second + 1 };
 	}).first % 11;
@@ -242,7 +235,7 @@ __m128i mullo_epi8(__m128i a, __m128i b)
 //@YSRKEN
 //http://qiita.com/YSRKEN/items/4ca7229c98640a71bdad
 
-std::uint8_t calc_check_digit_ysrken(const std::string& str) SPROUT_NOEXCEPT_IF(false) {
+std::uint8_t calc_check_digit_ysrken(const std::string& str) noexcept(false) {
 	static SPROUT_CXX14_CONSTEXPR auto mod_table = make_mod_table_ysr();
 	// 自分で作った文字列に対して入力チェックが必要なのかしら……？
 	if (11 != str.size()) throw std::runtime_error("str.digit must be 11");
@@ -262,7 +255,7 @@ std::uint8_t calc_check_digit_ysrken(const std::string& str) SPROUT_NOEXCEPT_IF(
 	y = _mm_add_epi16(y, _mm_srli_si128(y, 8));
 	return mod_table[_mm_cvtsi128_si32(y)];
 }
-std::uint8_t calc_check_digit_ysrken2(const std::string& str) SPROUT_NOEXCEPT_IF(false) {
+std::uint8_t calc_check_digit_ysrken2(const std::string& str) noexcept(false) {
 	static SPROUT_CXX14_CONSTEXPR auto mod_table = make_mod_table_ysr();
 	// 自分で作った文字列に対して入力チェックが必要なのかしら……？
 	if (11 != str.size()) throw std::runtime_error("str.digit must be 11");
@@ -327,7 +320,7 @@ std::uint8_t get_check_digit_ssse3(const std::string& query)
 }
 
 //@mtfmk
-std::uint8_t calc_check_digit_mtfmk(const std::string& mynumber) SPROUT_NOEXCEPT_IF(false) {
+std::uint8_t calc_check_digit_mtfmk(const std::string& mynumber) noexcept(false) {
 	if (11 != mynumber.size()) throw std::runtime_error("str.digit must be 11");
 	for (auto e : mynumber) if (e < '0' || '9' < e) { throw std::runtime_error("in function calc_check_digit_ysrken : iregal charactor detect.(" + mynumber + ')'); }
 	const __m128i sub = _mm_set1_epi8('0');
