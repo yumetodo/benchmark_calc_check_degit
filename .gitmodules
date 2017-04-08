@@ -1,0 +1,3 @@
+[submodule "3rd_party/Sprout"]
+	path = 3rd_party/Sprout
+	url = https://github.com/bolero-MURAKAMI/Sprout.git
