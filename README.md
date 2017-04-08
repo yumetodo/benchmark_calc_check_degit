@@ -22,3 +22,7 @@ or
 git clone https://github.com/yumetodo/benchmark_calc_check_degit.git
 git submodule update --init
 ```
+## Supported Compiler
+
+- Visual Studio 2015 Update3
+- Visual Studio 2017
