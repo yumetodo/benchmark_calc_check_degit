@@ -23,7 +23,7 @@
     <ProjectGuid>{61442DB6-AA53-46A3-8745-3C746B4AAE03}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>benchmark_calc_check_degit</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.14393.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <Import Project="vcxcompat.props" />

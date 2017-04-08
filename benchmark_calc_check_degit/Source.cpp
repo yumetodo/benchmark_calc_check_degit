@@ -121,7 +121,7 @@ SPROUT_CXX14_CONSTEXPR sprout::array<std::uint8_t, 1000> make_mod_table_ysr() {
 }
 SPROUT_CXX14_CONSTEXPR sprout::array<std::uint8_t, 1000> make_mod_table_yumetodo() {
 	sprout::array<std::uint8_t, 1000> re{};
-	for (size_t i = 0; i < 1000; ++i) {
+	for (int i = 0; i < 1000; ++i) {
 		re[i] = i % 11;
 	}
 	return re;
@@ -131,7 +131,7 @@ std::uint8_t calc_check_digit_yumetodo_kai_simd(const std::string& n) noexcept(f
 	static SPROUT_CXX14_CONSTEXPR auto mod_table = make_mod_table_yumetodo();
 	SPROUT_CONSTEXPR std::size_t num_of_digits = 11;
 	if (num_of_digits != n.size()) throw std::runtime_error("n.digit must be 11");
-	for (auto e : n) if (e < '0' || '9' < e) { throw std::runtime_error("in function calc_check_digit_yumetodo : iregal charactor detect.(" + n + ')'); }
+	for (auto e : n) if (e < '0' || '9' < e) { throw std::runtime_error("in function calc_check_digit_yumetodo_kai_simd : illegal character detected.(" + n + ')'); }
 	alignas(16) static SPROUT_CXX14_CONSTEXPR auto qn = make_qn();//0-7
 	alignas(16) std::uint16_t n1[sizeof(__m256i) / sizeof(std::uint16_t)];
 	for (std::size_t i = 0; i < num_of_digits; ++i) n1[i] = std::uint16_t(n[num_of_digits - 1 - i]);//reverse
@@ -148,7 +148,7 @@ std::uint8_t calc_check_digit_yumetodo_kai_simd(const std::string& n) noexcept(f
 std::uint8_t calc_check_digit_yumetodo_kai(const std::string& n) noexcept(false) {
 	SPROUT_CONSTEXPR std::size_t num_of_digits = 11;
 	if (num_of_digits != n.size()) throw std::runtime_error("n.digit must be 11");
-	for (auto e : n) if (e < '0' || '9' < e) { throw std::runtime_error("in function calc_check_digit_yumetodo : iregal charactor detect.(" + n + ')'); }
+	for (auto e : n) if (e < '0' || '9' < e) { throw std::runtime_error("in function calc_check_digit_yumetodo_kai : illegal character detected.(" + n + ')'); }
 	static SPROUT_CXX14_CONSTEXPR auto qn = make_qn();//0-7
 	std::array<std::uint16_t, 11> pn;//0-9
 	for (std::size_t i = 0; i < num_of_digits; ++i) pn[i] = std::uint16_t(n[num_of_digits - 1 - i] - '0');
@@ -161,7 +161,7 @@ std::uint8_t calc_check_digit_yumetodo_kai(const std::string& n) noexcept(false)
 }
 std::uint8_t calc_check_digit_yumetodo(const std::string& n) noexcept(false) {
 	if (11 != n.size()) throw std::runtime_error("n.digit must be 11");
-	for (auto e : n) if (e < '0' || '9' < e) { throw std::runtime_error("in function calc_check_digit_yumetodo : iregal charactor detect.(" + n + ')'); }
+	for (auto e : n) if (e < '0' || '9' < e) { throw std::runtime_error("in function calc_check_digit_yumetodo : illegal character detected.(" + n + ')'); }
 	const std::uint8_t r = std::accumulate(n.rbegin(), n.rend(), std::pair<int, int>{}, [](const auto& s, const char& e) -> std::pair<int, int> {
 		return { s.first + (e - '0') * ((5 < s.second) ? s.second - 4 : s.second + 2), s.second + 1 };
 	}).first % 11;
@@ -183,7 +183,7 @@ SPROUT_CONSTEXPR std::uint16_t Q(std::uint8_t n) {
 }
 std::uint8_t calc_check_digit_ryogaelbtn(const std::string& P) {
 	if (11 != P.size()) throw std::runtime_error("P.digit must be 11");
-	for (auto e : P) if (e < '0' || '9' < e) { throw std::runtime_error("in function calc_check_digit_ryogaelbtn : iregal charactor detect.(" + P + ')'); }
+	for (auto e : P) if (e < '0' || '9' < e) { throw std::runtime_error("in function calc_check_digit_ryogaelbtn : illegal character detected.(" + P + ')'); }
 	unsigned int sum = 0;
 	sum += static_cast<std::uint16_t>(P[10] - '0') * Q(1);
 	sum += static_cast<std::uint16_t>(P[9] - '0') * Q(2);
@@ -202,7 +202,7 @@ std::uint8_t calc_check_digit_ryogaelbtn(const std::string& P) {
 std::uint8_t calc_check_digit_ryogaelbtn2(const std::string& P) {
 	if (11 != P.size()) throw std::runtime_error("P.digit must be 11");
 	try { std::stoull(P); }
-	catch (...) { throw std::runtime_error("in function calc_check_digit_ryogaelbtn : iregal charactor detect.(" + P + ')'); }
+	catch (...) { throw std::runtime_error("in function calc_check_digit_ryogaelbtn2 : illegal character detected.(" + P + ')'); }
 	unsigned int sum = 0;
 	sum += static_cast<std::uint16_t>(P[10] - '0') * Q(1);
 	sum += static_cast<std::uint16_t>(P[9] - '0') * Q(2);
@@ -239,7 +239,7 @@ std::uint8_t calc_check_digit_ysrken(const std::string& str) noexcept(false) {
 	static SPROUT_CXX14_CONSTEXPR auto mod_table = make_mod_table_ysr();
 	// 自分で作った文字列に対して入力チェックが必要なのかしら……？
 	if (11 != str.size()) throw std::runtime_error("str.digit must be 11");
-	for (auto e : str) if (e < '0' || '9' < e) { throw std::runtime_error("in function calc_check_digit_ysrken : iregal charactor detect.(" + str + ')'); }
+	for (auto e : str) if (e < '0' || '9' < e) { throw std::runtime_error("in function calc_check_digit_ysrken : illegal character detected.(" + str + ')'); }
 	// __m128i型にマッピングし、'0'でマイナスすることで整数化する
 	// 必然的に後ろ8ビット×5個=40ビット分はゴミが入ることになる
 	__m128i p_n = _mm_loadu_si128(reinterpret_cast<const __m128i*>(str.c_str()));
@@ -259,7 +259,7 @@ std::uint8_t calc_check_digit_ysrken2(const std::string& str) noexcept(false) {
 	static SPROUT_CXX14_CONSTEXPR auto mod_table = make_mod_table_ysr();
 	// 自分で作った文字列に対して入力チェックが必要なのかしら……？
 	if (11 != str.size()) throw std::runtime_error("str.digit must be 11");
-	for (auto e : str) if (e < '0' || '9' < e) { throw std::runtime_error("in function calc_check_digit_ysrken : iregal charactor detect.(" + str + ')'); }
+	for (auto e : str) if (e < '0' || '9' < e) { throw std::runtime_error("in function calc_check_digit_ysrken2 : illegal character detected.(" + str + ')'); }
 	// __m128i型にマッピングし、'0'でマイナスすることで整数化する
 	// 必然的に後ろ8ビット×5個=40ビット分はゴミが入ることになる
 	__m128i p_n = _mm_loadu_si128(reinterpret_cast<const __m128i*>(str.c_str()));
@@ -283,13 +283,13 @@ std::uint8_t calc_check_digit_ysrken2(const std::string& str) noexcept(false) {
 /// Function to calculate check digit with SSSE3 intrinsics
 /// parm: a 11 digit number as string
 /// ret: an unsigned integer 0~11
-std::uint8_t get_check_digit_ssse3(const std::string& query)
+std::uint8_t calc_check_digit_mavtse(const std::string& query)
 {
 
 	unsigned long long as_value{ 0 };
 	std::array<short, 16> simd_result{}; // the 16bit intermediate results from SIMD
 	if (11 != query.length()) throw std::runtime_error("str.digit must be 11");
-	for (auto e : query) if (e < '0' || '9' < e) { throw std::runtime_error("in function get_check_digit_ssse3 : illegal character detected.(" + query + ')'); }
+	for (auto e : query) if (e < '0' || '9' < e) { throw std::runtime_error("in function calc_check_digit_mavtse : illegal character detecteded.(" + query + ')'); }
 	__m128i vP = _mm_loadu_si128(reinterpret_cast<const __m128i*> (query.c_str()));
 
 	__m128i vzero = _mm_set1_epi8('0');
@@ -322,7 +322,7 @@ std::uint8_t get_check_digit_ssse3(const std::string& query)
 //@mtfmk
 std::uint8_t calc_check_digit_mtfmk(const std::string& mynumber) noexcept(false) {
 	if (11 != mynumber.size()) throw std::runtime_error("str.digit must be 11");
-	for (auto e : mynumber) if (e < '0' || '9' < e) { throw std::runtime_error("in function calc_check_digit_ysrken : iregal charactor detect.(" + mynumber + ')'); }
+	for (auto e : mynumber) if (e < '0' || '9' < e) { throw std::runtime_error("in function calc_check_digit_mtfmk : illegal character detected.(" + mynumber + ')'); }
 	const __m128i sub = _mm_set1_epi8('0');
 	const __m128i q_n0 = _mm_setr_epi16(6, 5, 4, 3, 2, 7, 6, 5);
 	const __m128i q_n1 = _mm_setr_epi16(4, 3, 2, 0, 0, 0, 0, 0);
@@ -358,7 +358,7 @@ int main() {
 			bench("calc_check_digit_yumetodo_original", calc_check_digit_yumetodo_original, inputs),
 			bench("calc_check_digit_ysrken", calc_check_digit_ysrken, inputs),
 			bench("calc_check_digit_ysrken2", calc_check_digit_ysrken2, inputs),
-			bench("get_check_digit_ssse3", get_check_digit_ssse3, inputs),
+			bench("calc_check_digit_mavtse", calc_check_digit_mavtse, inputs),
 			bench("calc_check_digit_mtfmk", calc_check_digit_mtfmk, inputs)
 		};
 		for (auto&& t : ts) std::cout << t.count() << ',';
