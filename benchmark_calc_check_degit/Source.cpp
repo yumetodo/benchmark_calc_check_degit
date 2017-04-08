@@ -155,6 +155,133 @@ __m128i mullo_epi8(__m128i a, __m128i b)
 }
 
 
+//@MaverickTse
+//https://gist.github.com/MaverickTse/b78eff8fcc70962e0ee7a21b985bbaa9
+
+/// Function to calculate check digit with AVX2 intrinsics
+/// parm: a 11 digit number as string
+/// ret: an unsigned integer 0~11
+std::uint8_t get_check_digit_avx2(const std::string& query)
+{
+	if (query.length() != 11)
+	{
+		std::cerr << "Query string is not 11 characters" << std::endl;
+		return 0xFF;
+	}
+	unsigned long long as_value{ 0 };
+	try
+	{
+		as_value = std::stoull(query);
+	}
+	catch (std::invalid_argument e)
+	{
+		std::cerr << "Query string is not a valid number" << std::endl;
+		return 0xFF;
+	}
+	catch (std::exception all)
+	{
+		std::cerr << "Error converting string to number." << std::endl;
+		std::cerr << all.what() << std::endl;
+		return 0xFF;
+	}
+	std::array<std::uint8_t, 32> digits{ 0 };
+
+	std::array<short, 16> simd_result{ 0 }; // the 16bit intermediate results from SIMD
+
+	for (int i = 0; i < 11; ++i)
+	{
+		digits[i] = as_value % 10;
+		as_value /= 10;
+	}
+	// Note: the least significant digit is now the 1st item of array
+
+	// Fire up SIMD for calculation
+
+	// load P from array
+	__m256i vP = _mm256_loadu_si256(reinterpret_cast<const __m256i*> (digits.data()));
+	// Set Q, beware of param order
+	__m256i vQ = _mm256_set_epi8(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 5, 4, 3, 2, 7, 6, 5, 4, 3, 2);
+	// Multiply-add vP and vQ
+	__m256i vR = _mm256_maddubs_epi16(vP, vQ);
+	// Store vR
+	_mm256_storeu_si256(reinterpret_cast<__m256i*>(simd_result.data()), vR);
+	// our result
+	int result{ 0 };
+	for (int i = 0; i < 6; ++i)
+	{
+		result += simd_result[i];
+	}
+	result %= 11;
+	if (result <= 1)
+	{
+		result = 0;
+	}
+	result = 11 - result;
+	return static_cast<std::uint8_t>(result);
+}
+
+/// Function to calculate check digit with SSE3 intrinsics
+/// parm: a 11 digit number as string
+/// ret: an unsigned integer 0~11
+std::uint8_t get_check_digit_ssse3(const std::string& query)
+{
+	if (query.length() != 11)
+	{
+		std::cerr << "Query string is not 11 characters" << std::endl;
+		return 0xFF;
+	}
+	unsigned long long as_value{ 0 };
+	try
+	{
+		as_value = std::stoull(query);
+	}
+	catch (std::invalid_argument e)
+	{
+		std::cerr << "Query string is not a valid number" << std::endl;
+		return 0xFF;
+	}
+	catch (std::exception all)
+	{
+		std::cerr << "Error converting string to number." << std::endl;
+		std::cerr << all.what() << std::endl;
+		return 0xFF;
+	}
+	std::array<std::uint8_t, 16> digits{ 0 };
+	std::array<short, 16> simd_result{ 0 }; // the 16bit intermediate results from SIMD
+
+	for (int i = 0; i < 11; ++i)
+	{
+		digits[i] = as_value % 10;
+		as_value /= 10;
+	}
+	// Note: the least significant digit is now the 1st item of array
+
+	// Fire up SIMD for calculation
+
+	// load P from array
+	__m128i vP = _mm_loadu_si128(reinterpret_cast<const __m128i*> (digits.data()));
+
+	// Set Q, beware of order
+	__m128i vQ = _mm_set_epi8(0, 0, 0, 0, 0, 6, 5, 4, 3, 2, 7, 6, 5, 4, 3, 2);
+	// Multiply-add vP and vQ
+	__m128i vR = _mm_maddubs_epi16(vP, vQ);
+	// Store vR
+	_mm_storeu_si128(reinterpret_cast<__m128i*>(simd_result.data()), vR);
+	// our result
+	int result{ 0 };
+	for (int i = 0; i < 6; ++i)
+	{
+		result += simd_result[i];
+	}
+
+	result %= 11;
+	if (result <= 1)
+	{
+		result = 0;
+	}
+	result = 11 - result;
+	return static_cast<std::uint8_t>(result);
+}
 int main() {
 	constexpr int test_times = 14000000;
 	try {
@@ -170,6 +297,8 @@ int main() {
 		bench("calc_check_digit_yumetodo", calc_check_digit_yumetodo, inputs);
 		bench("calc_check_digit_ryogaelbtn2", calc_check_digit_ryogaelbtn2, inputs);
 		bench("calc_check_digit_yumetodo_original", calc_check_digit_yumetodo_original, inputs);
+		bench("get_check_digit_avx2", get_check_digit_avx2, inputs);
+		bench("get_check_digit_ssse3", get_check_digit_ssse3, inputs);
 		std::cout << "benchmark finish!" << std::endl;
 	}
 	catch (const std::exception& er) {
