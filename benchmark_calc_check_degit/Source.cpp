@@ -288,6 +288,27 @@ std::uint8_t get_check_digit_ssse3(const std::string& query)
 	result = 11 - result;
 	return static_cast<std::uint8_t>(result);
 }
+
+//@mtfmk 
+std::uint8_t calc_check_digit_mtfmk(const std::string& mynumber) noexcept(false) {
+	if (11 != mynumber.size()) throw std::runtime_error("str.digit must be 11");
+	for (auto e : mynumber) if (e < '0' || '9' < e) { throw std::runtime_error("in function calc_check_digit_ysrken : iregal charactor detect.(" + mynumber + ')'); }
+	const __m128i sub = _mm_set1_epi8('0');
+	const __m128i q_n0 = _mm_setr_epi16(6, 5, 4, 3, 2, 7, 6, 5);
+	const __m128i q_n1 = _mm_setr_epi16(4, 3, 2, 0, 0, 0, 0, 0);
+
+	const __m128i zero = _mm_setzero_si128();
+	__m128i p_n0 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(mynumber.c_str()));
+	p_n0 = _mm_subs_epu8(p_n0, sub);
+	__m128i p_n1 = _mm_unpackhi_epi8(p_n0, zero);
+	p_n0 = _mm_unpacklo_epi8(p_n0, zero);
+	__m128i sum = _mm_add_epi32(_mm_madd_epi16(p_n0, q_n0), _mm_madd_epi16(p_n1, q_n1));
+	sum = _mm_add_epi32(sum, _mm_srli_si128(sum, 8));
+	sum = _mm_add_epi32(sum, _mm_srli_si128(sum, 4));
+
+	const auto r = _mm_cvtsi128_si32(sum) % 11;
+	return (0 == r || 1 == r) ? 0 : 11 - r;
+}
 int main() {
 	constexpr int test_times = 14000000;
 	try {
@@ -306,6 +327,7 @@ int main() {
 		bench("calc_check_digit_yumetodo_original", calc_check_digit_yumetodo_original, inputs);
 		bench("calc_check_digit_ysrken", calc_check_digit_ysrken, inputs);
 		bench("get_check_digit_ssse3", get_check_digit_ssse3, inputs);
+		bench("calc_check_digit_mtfmk", calc_check_digit_mtfmk, inputs);
 		std::cout << "benchmark finish!" << std::endl;
 	}
 	catch (const std::exception& er) {
