@@ -105,7 +105,7 @@ constexpr auto make_qn() {
 }
 constexpr sprout::array<std::uint8_t, 1000> make_mod_table_ysr() {
 	sprout::array<std::uint8_t, 1000> re{};
-		for (int i = 0; i < 1000; ++i) {
+	for (int i = 0; i < 1000; ++i) {
 		if (i % 11 <= 1)
 		{
 			re[i] = 0;
@@ -114,6 +114,7 @@ constexpr sprout::array<std::uint8_t, 1000> make_mod_table_ysr() {
 		{
 			re[i] = 11 - (i % 11);
 		}
+	}
 	return re;
 }
 constexpr sprout::array<std::uint8_t, 1000> make_mod_table_yumetodo() {
