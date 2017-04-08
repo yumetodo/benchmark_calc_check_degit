@@ -348,7 +348,9 @@ static inline bool validate(const __m128i& x, const __m128i& zero, const __m128i
 //https://twitter.com/mtfmk/status/850524971432525825
 uint8_t calc_check_digit_mtfmk2(const std::string& mynumber) noexcept
 {
+	if (mynumber.size() != 11) return 0xFF;
 	alignas(16) std::array<char, 16> array{};
+	array.fill('0');
 	std::memcpy(array.data(), mynumber.c_str(), 11);
 	static const __m128i c_zero = _mm_set1_epi8('0');
 	static const __m128i c_nine = _mm_set1_epi8('9');
