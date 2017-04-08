@@ -269,9 +269,6 @@ std::uint8_t get_check_digit_ssse3(const std::string& query)
 	// Set Q, beware of order
 	__m128i vQ = _mm_set_epi8(0, 0, 0, 0, 0, 2, 3, 4, 5, 6, 7, 2, 3, 4, 5, 6);
 		
-	// load P from array
-	__m128i vP = _mm_loadu_si128(reinterpret_cast<const __m128i*> (digits.data()));
-
 	// Multiply-add vP and vQ
 	__m128i vR = _mm_maddubs_epi16(vP, vQ);
 	// Store vR
