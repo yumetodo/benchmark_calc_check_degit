@@ -41,19 +41,62 @@ std::string generate_input() {
 	return re;
 }
 using calc_check_digit_f = std::uint8_t(*)(const std::string&);
+struct test_result {
+	std::string test_case;
+	std::uint8_t expected;
+	std::uint8_t actual;
+};
+std::ostream& operator<<(std::ostream& os, const test_result& t) {
+	os << "testcase:" << t.test_case << ": expected(" << std::uint16_t(t.expected) << ") actual(" << std::uint16_t(t.actual) << ')';
+	return os;
+}
+auto test(calc_check_digit_f f) {
+	static const std::pair<std::string, std::uint8_t> testcaes[] = {
+		{ "12345678901", 8 },
+		{ "56661137362", 0 },
+		{ "61671451309", 6 },
+		{ "66383747390", 9 },
+		{ "08065140466", 9 },
+		{ "15473503678", 2 },
+		{ "40113376378", 8 },
+		{ "12226480680", 0 },
+		{ "82046894873", 4 },
+		{ "48880517043", 6 },
+		{ "97816786786", 3 }
+	};
+	std::vector<test_result> fail;
+	fail.reserve(sizeof(testcaes) / sizeof(*testcaes));
+	for (auto&& t : testcaes) {
+		try {
+			const auto re = f(t.first);
+			if (re != t.second) fail.push_back({ t.first, t.second, re });
+		}
+		catch (...) {
+			fail.push_back({ t.first, t.second, std::uint8_t(0xff) });
+		}
+	}
+	return fail;
+}
 void bench(const char* func_name, calc_check_digit_f f, const std::vector<std::string>& inputs) {
 	namespace ch = std::chrono;
 	using namespace std::string_literals;
 	using hc = ch::high_resolution_clock;
+	const auto test_re = test(f);
+	auto v2s = [](const std::vector<test_result>& a) {
+		std::stringstream ss;
+		for (auto&& t : a) ss << t << std::endl;
+		return ss.str();
+	};
 	const auto t0 = hc::now();
 	[[gnu::unused]] std::uint8_t dst;
 	for (auto&& i : inputs) dst = f(i);
 	const auto t1 = hc::now();
 	const auto t = t1 - t0;
 	std::cout
-		<< func_name << " : test::"
+		<< func_name << " : test::" << (test_re.empty() ? "pass:" : "fail:")
 		<< ch::duration_cast<ch::milliseconds>(t).count() << "[ms] ("
 		<< ch::duration_cast<ch::nanoseconds>(t).count() << "[ns])" << std::endl;
+	if(!test_re.empty()) std::cout << v2s(test_re) << std::endl;
 }
 constexpr auto make_qn() {
 	alignas(16) sprout::array<std::uint16_t, sizeof(__m256i) / sizeof(std::uint16_t)> re{};
@@ -66,6 +109,32 @@ constexpr sprout::array<std::uint8_t, 1000> make_mod_table_ysr() {
 		re[i] = 11 - (i % 11);
 	}
 	return re;
+}
+constexpr sprout::array<std::uint8_t, 1000> make_mod_table_yumetodo() {
+	sprout::array<std::uint8_t, 1000> re{};
+	for (size_t i = 0; i < 1000; ++i) {
+		re[i] = i % 11;
+	}
+	return re;
+}
+
+std::uint8_t calc_check_digit_yumetodo_kai_simd(const std::string& n) noexcept(false) {
+	static constexpr auto mod_table = make_mod_table_yumetodo();
+	constexpr std::size_t num_of_digits = 11;
+	if (num_of_digits != n.size()) throw std::runtime_error("n.digit must be 11");
+	for (auto e : n) if (e < '0' || '9' < e) { throw std::runtime_error("in function calc_check_digit_yumetodo : iregal charactor detect.(" + n + ')'); }
+	alignas(16) constexpr auto qn = make_qn();//0-7
+	alignas(16) std::uint16_t n1[sizeof(__m256i) / sizeof(std::uint16_t)];
+	for (std::size_t i = 0; i < num_of_digits; ++i) n1[i] = std::uint16_t(n[num_of_digits - 1 - i]);//reverse
+	const __m256i pn1 = _mm256_sub_epi16(_mm256_load_si256(reinterpret_cast<const __m256i*>(n1)), _mm256_set1_epi16('0'));
+	alignas(16) std::uint16_t tmp[sizeof(__m256i) / sizeof(std::uint16_t)];//0-63
+	const __m256i qn1 = _mm256_load_si256(reinterpret_cast<const __m256i*>(qn.data()));
+	const auto re = _mm256_mullo_epi16(pn1, qn1);
+	_mm256_storeu_si256(reinterpret_cast<__m256i*>(tmp), re);
+	std::uint16_t r = 0;
+	for (std::size_t i = 0; i < num_of_digits; ++i) r += tmp[i];
+	r = mod_table[r];
+	return (0 == r || 1 == r) ? 0 : 11 - r;
 }
 std::uint8_t calc_check_digit_yumetodo_kai(const std::string& n) noexcept(false) {
 	constexpr std::size_t num_of_digits = 11;
@@ -315,6 +384,7 @@ int main() {
 			<< "done." << std::endl
 			<< "start benchmark mark:" << std::endl;
 
+		bench("calc_check_digit_yumetodo_kai_simd", calc_check_digit_yumetodo_kai_simd, inputs);
 		bench("calc_check_digit_yumetodo_kai", calc_check_digit_yumetodo_kai, inputs);
 		bench("calc_check_digit_ryogaelbtn", calc_check_digit_ryogaelbtn, inputs);
 		bench("calc_check_digit_yumetodo", calc_check_digit_yumetodo, inputs);
