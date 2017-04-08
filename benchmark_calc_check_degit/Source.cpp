@@ -51,7 +51,7 @@ std::ostream& operator<<(std::ostream& os, const test_result& t) {
 	return os;
 }
 auto test(calc_check_digit_f f) {
-	static const std::pair<std::string, std::uint8_t> testcaes[] = {
+	static const std::pair<std::string, std::uint8_t> testcase[] = {
 		{ "12345678901", 8 },
 		{ "56661137362", 0 },
 		{ "61671451309", 6 },
@@ -65,8 +65,8 @@ auto test(calc_check_digit_f f) {
 		{ "97816786786", 3 }
 	};
 	std::vector<test_result> fail;
-	fail.reserve(sizeof(testcaes) / sizeof(*testcaes));
-	for (auto&& t : testcaes) {
+	fail.reserve(sizeof(testcase) / sizeof(*testcase));
+	for (auto&& t : testcase) {
 		try {
 			const auto re = f(t.first);
 			if (re != t.second) fail.push_back({ t.first, t.second, re });
