@@ -283,7 +283,7 @@ std::uint8_t get_check_digit_ssse3(const std::string& query)
 	result %= 11;
 	if (result <= 1)
 	{
-		result = 0;
+		return 0;
 	}
 	result = 11 - result;
 	return static_cast<std::uint8_t>(result);
