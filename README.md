@@ -7,3 +7,18 @@ C++でマイナンバーのチェックデジットを計算する
 - [Calculating Japan's My Number check digit using AVX intrinsics](https://gist.github.com/MaverickTse/b78eff8fcc70962e0ee7a21b985bbaa9)
 
 を検証・ベンチマークするコード群です。
+
+## Dependency
+
+- [Sprout](https://github.com/bolero-MURAKAMI/Sprout)
+
+```
+git clone --recursive https://github.com/yumetodo/benchmark_calc_check_degit.git
+```
+
+or
+
+```
+git clone https://github.com/yumetodo/benchmark_calc_check_degit.git
+git submodule update --init
+```
