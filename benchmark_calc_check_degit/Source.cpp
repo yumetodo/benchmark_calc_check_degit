@@ -339,6 +339,74 @@ std::uint8_t calc_check_digit_mtfmk(const std::string& mynumber) noexcept(false)
 	const auto r = _mm_cvtsi128_si32(sum) % 11;
 	return (0 == r || 1 == r) ? 0 : 11 - r;
 }
+static inline bool validate(const __m128i& x, const __m128i& zero, const __m128i& nine)
+{
+	__m128i t = _mm_or_si128(_mm_cmpgt_epi8(x, nine), _mm_cmplt_epi8(x, zero));
+	return _mm_test_all_zeros(t, _mm_cmpeq_epi32(x, x)) == 1;
+}
+//https://wandbox.org/permlink/aj8qmP72ExQOKVZx
+//https://twitter.com/mtfmk/status/850524971432525825
+uint8_t calc_check_digit_mtfmk2(const std::string& mynumber) noexcept
+{
+	if (mynumber.size() != 11) return 0xFF;
+	alignas(16) std::array<char, 16> array;
+	array.fill('0');
+	std::memcpy(array.data(), mynumber.c_str(), 11);
+	static const __m128i c_zero = _mm_set1_epi8('0');
+	static const __m128i c_nine = _mm_set1_epi8('9');
+	static const __m128i q_n0 = _mm_setr_epi16(6, 5, 4, 3, 2, 7, 6, 5);
+	static const __m128i q_n1 = _mm_setr_epi16(4, 3, 2, 0, 0, 0, 0, 0);
+
+	__m128i p_n0 = _mm_load_si128(reinterpret_cast<__m128i*>(array.data()));
+	if (!validate(p_n0, c_zero, c_nine)) {
+		return 0xFF;
+	}
+
+	p_n0 = _mm_subs_epu8(p_n0, c_zero);
+	const __m128i zero = _mm_setzero_si128();
+	__m128i p_n1 = _mm_unpackhi_epi8(p_n0, zero);
+	p_n0 = _mm_unpacklo_epi8(p_n0, zero);
+	__m128i sum = _mm_add_epi32(_mm_madd_epi16(p_n0, q_n0), _mm_madd_epi16(p_n1, q_n1));
+	sum = _mm_add_epi32(sum, _mm_srli_si128(sum, 8));
+	sum = _mm_add_epi32(sum, _mm_srli_si128(sum, 4));
+
+	int ret = 11 - _mm_cvtsi128_si32(sum) % 11;
+	return static_cast<uint8_t>(ret > 9 ? 0 : ret);
+}
+static inline bool validate(const __m128i& x, const __m128i& zero, const __m128i& nine, const __m128i& mask)
+{
+	__m128i t = _mm_or_si128(_mm_cmpgt_epi8(x, nine), _mm_cmplt_epi8(x, zero));
+	return _mm_test_all_zeros(t, mask) == 1;
+}
+//https://wandbox.org/permlink/PAZqXSGUtVr9HHHb
+uint8_t calc_check_digit_mtfmk3(const std::string& str) noexcept
+{
+	static const __m128i c_zero = _mm_set1_epi8('0');
+	static const __m128i c_nine = _mm_set1_epi8('9');
+	static const __m128i mask = _mm_setr_epi32(-1, -1, 0x00FFFFFF, 0);
+	static const __m128i q_n0 = _mm_setr_epi16(6, 5, 4, 3, 2, 7, 6, 5);
+	static const __m128i q_n1 = _mm_setr_epi16(4, 3, 2, 0, 0, 0, 0, 0);
+
+	if (str.size() != 11) {
+		return 0xFE;
+	}
+
+	__m128i p_n0 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(str.c_str()));
+	if (!validate(p_n0, c_zero, c_nine, mask)) {
+		return 0xFF;
+	}
+
+	const __m128i zero = _mm_setzero_si128();
+	p_n0 = _mm_subs_epu8(p_n0, c_zero);
+	__m128i p_n1 = _mm_unpackhi_epi8(p_n0, zero);
+	p_n0 = _mm_unpacklo_epi8(p_n0, zero);
+	__m128i sum = _mm_add_epi32(_mm_madd_epi16(p_n0, q_n0), _mm_madd_epi16(p_n1, q_n1));
+	sum = _mm_add_epi32(sum, _mm_srli_si128(sum, 8));
+	sum = _mm_add_epi32(sum, _mm_srli_si128(sum, 4));
+
+	int ret = 11 - _mm_cvtsi128_si32(sum) % 11;
+	return static_cast<uint8_t>(ret > 9 ? 0 : ret);
+}
 int main() {
 	SPROUT_CONSTEXPR int test_times = 16000000;
 	try {
@@ -359,7 +427,9 @@ int main() {
 			bench("calc_check_digit_ysrken", calc_check_digit_ysrken, inputs),
 			bench("calc_check_digit_ysrken2", calc_check_digit_ysrken2, inputs),
 			bench("calc_check_digit_mavtse", calc_check_digit_mavtse, inputs),
-			bench("calc_check_digit_mtfmk", calc_check_digit_mtfmk, inputs)
+			bench("calc_check_digit_mtfmk", calc_check_digit_mtfmk, inputs),
+			bench("calc_check_digit_mtfmk2", calc_check_digit_mtfmk2, inputs),
+			bench("calc_check_digit_mtfmk3", calc_check_digit_mtfmk3, inputs)
 		};
 		for (auto&& t : ts) std::cout << t.count() << ',';
 		std::cout << std::endl << "benchmark finish!" << std::endl;
