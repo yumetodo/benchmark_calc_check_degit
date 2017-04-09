@@ -468,6 +468,25 @@ uint8_t calc_check_digit_mtfmk4(const std::string& str) noexcept
 	int ret = 11 - _mm_cvtsi128_si32(sum) % 11;
 	return static_cast<uint8_t>(ret > 9 ? 0 : ret);
 }
+uint8_t calc_check_digit_mtfmk_ysrken(const std::string& str) noexcept
+{
+	static SPROUT_CXX14_CONSTEXPR auto mod_table = make_mod_table_ysr();
+	if (str.size() != 11) {
+		return 0xFE;
+	}
+
+	__m128i p_n = _mm_loadu_si128(reinterpret_cast<const __m128i*>(str.c_str()));
+	p_n = _mm_sub_epi8(p_n, _mm_set1_epi8('0'));
+	if (!validate(p_n)) {
+		return 0xFF;
+	}
+
+	__m128i sum = _mm_maddubs_epi16(p_n, _mm_setr_epi8(6, 5, 4, 3, 2, 7, 6, 5, 4, 3, 2, 0, 0, 0, 0, 0));
+	sum = _mm_sad_epu8(sum, _mm_setzero_si128());
+	sum = _mm_add_epi32(sum, _mm_srli_si128(sum, 8));
+	return mod_table[_mm_cvtsi128_si32(sum)];
+}
+
 int main() {
 	SPROUT_CONSTEXPR int test_times = 16000000;
 	try {
@@ -492,7 +511,8 @@ int main() {
 			bench("calc_check_digit_mtfmk", calc_check_digit_mtfmk, inputs),
 			bench("calc_check_digit_mtfmk2", calc_check_digit_mtfmk2, inputs),
 			bench("calc_check_digit_mtfmk3", calc_check_digit_mtfmk3, inputs),
-			bench("calc_check_digit_mtfmk4", calc_check_digit_mtfmk4, inputs)
+			bench("calc_check_digit_mtfmk4", calc_check_digit_mtfmk4, inputs),
+			bench("calc_check_digit_mtfmk_ysrken", calc_check_digit_mtfmk_ysrken, inputs)
 		};
 		for (auto&& t : ts) std::cout << t.count() << ',';
 		std::cout << std::endl << "benchmark finish!" << std::endl;
