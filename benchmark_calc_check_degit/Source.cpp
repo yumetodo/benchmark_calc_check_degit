@@ -107,15 +107,9 @@ SPROUT_CXX14_CONSTEXPR auto make_qn() {
 }
 SPROUT_CXX14_CONSTEXPR sprout::array<std::uint8_t, 1000> make_mod_table_ysr() {
 	sprout::array<std::uint8_t, 1000> re{};
-	for (int i = 0; i < 1000; ++i) {
-		if (i % 11 <= 1)
-		{
-			re[i] = 0;
-		}
-		else
-		{
-			re[i] = 11 - (i % 11);
-		}
+	for (size_t i = 0; i < 1000; ++i) {
+		size_t mod = i % 11;
+		re[i] = static_cast<std::uint8_t>(mod <= 1 ? 0 : 11 - mod);
 	}
 	return re;
 }
@@ -275,7 +269,50 @@ std::uint8_t calc_check_digit_ysrken2(const std::string& str) noexcept(false) {
 	y = _mm_add_epi16(y, _mm_srli_si128(y, 8));
 	return mod_table[_mm_cvtsi128_si32(y)];
 }
+std::uint8_t calc_check_digit_ysrken3(const std::string &str) noexcept(false) {
+	static SPROUT_CXX14_CONSTEXPR auto mod_table = make_mod_table_ysr();
+	// 入力チェック-1
+	if (str.size() < 11) throw std::runtime_error("桁数が少なすぎます。");
+	// __m128i型にマッピング
+	const __m128i input = _mm_loadu_si128(reinterpret_cast<const __m128i*>(str.c_str()));
+	// 入力チェック-2
+	// 判定用の定数
+	const static __m128i min_digit = _mm_set1_epi8('0');
+	const static __m128i max_digit = _mm_set1_epi8('9');
+	const static __m128i bit_mask = _mm_set_epi8(
+		0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff,
+		0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
+	);
+	// 判定1：'0'未満なら0xff、'0'以上なら0x00
+	const __m128i cmp1 = _mm_cmplt_epi8(input, min_digit);
+	// 判定2：'9'より上なら0xff、'0'以上なら0x00
+	const __m128i cmp2 = _mm_cmpgt_epi8(input, max_digit);
+	// OR文で重ね合わせる(数字としての条件を満たさない箇所があれば0xff)
+	const __m128i cmp3 = _mm_or_si128(cmp1, cmp2);
+	// 後ろ5バイトは関係ないのでマスクしておく
+	// マスク後のビットが全て0に等しければセーフ、さもないとアウト
+	if (_mm_testz_si128(cmp3, bit_mask) != 1)
+		throw std::runtime_error("数字以外の文字が含まれています。");
 
+	// 8ビット毎の掛け算命令
+	// http://stackoverflow.com/questions/8193601/sse-multiplication-16-x-uint8-t
+	const static auto mullo_epi8 = [](const __m128i &a, const __m128i &b) -> __m128i {
+		// unpack and multiply
+		__m128i dst_even = _mm_mullo_epi16(a, b);
+		__m128i dst_odd = _mm_mullo_epi16(_mm_srli_epi16(a, 8), _mm_srli_epi16(b, 8));
+		// repack
+		return _mm_or_si128(_mm_slli_epi16(dst_odd, 8), _mm_srli_epi16(_mm_slli_epi16(dst_even, 8), 8));
+	};
+	// 掛け合わせる定数
+	// p_n(つまりinput2)を反転させてないので、逆にこちらを反転させている
+	const static __m128i q_n = _mm_set_epi8(0, 0, 0, 0, 0, 2, 3, 4, 5, 6, 7, 2, 3, 4, 5, 6);
+	// p_nとq_nとの掛け算
+	const __m128i mul_pq = mullo_epi8(_mm_sub_epi8(input, min_digit), q_n);
+	// 総和を計算する
+	__m128i temp = _mm_sad_epu8(mul_pq, _mm_setzero_si128());
+	temp = _mm_add_epi16(temp, _mm_srli_si128(temp, 8));
+	return mod_table[_mm_cvtsi128_si32(temp)];
+}
 
 //@MaverickTse
 //https://gist.github.com/MaverickTse/b78eff8fcc70962e0ee7a21b985bbaa9
@@ -426,6 +463,7 @@ int main() {
 			bench("calc_check_digit_yumetodo_original", calc_check_digit_yumetodo_original, inputs),
 			bench("calc_check_digit_ysrken", calc_check_digit_ysrken, inputs),
 			bench("calc_check_digit_ysrken2", calc_check_digit_ysrken2, inputs),
+			bench("calc_check_digit_ysrken3", calc_check_digit_ysrken3, inputs),
 			bench("calc_check_digit_mavtse", calc_check_digit_mavtse, inputs),
 			bench("calc_check_digit_mtfmk", calc_check_digit_mtfmk, inputs),
 			bench("calc_check_digit_mtfmk2", calc_check_digit_mtfmk2, inputs),
